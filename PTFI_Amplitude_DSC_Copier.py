@@ -74,7 +74,7 @@ for file in files_to_process:
                                                    sr, 
                                                    '', 
                                                    "SUBFOLDERS", 
-                                                   "ALLOW_DUPLICATES",
+                                                   "EXCLUDE_DUPLICATES",
                                                    "BUILD_PYRAMIDS", 
                                                    "NO_STATISTICS", 
                                                    "NO_THUMBNAILS", '', 
@@ -86,15 +86,13 @@ for file in files_to_process:
                 print(e)
                                  
 # Process: Select Layer By Attribute
-if files_to_process:
+if not files_to_process:
     arcpy.management.SelectLayerByAttribute(mos_dataset, "NEW_SELECTION", """'Acquisition_Date' IS NULL""", None)
 
     # Calculate aquisition date field
     print("Calculating aquisition date")
-    try:   
-        arcpy.management.CalculateField(mos_dataset, "Acquisition_Date", "get_date(!Name!)", "PYTHON3", """def get_date(name):
-        aq_date = "{0}/{1}/{2}".format(name[4:6], name[6:8], name[0:4])
-        return aq_date""", "TEXT", "NO_ENFORCE_DOMAINS")
+    try:    
+        arcpy.management.CalculateField(mos_dataset, "Acquisition_Date", '"{0}/{1}/{2}".format(!Name![4:6], !Name![6:8], !Name![0:4])', "PYTHON3", '', "TEXT", "NO_ENFORCE_DOMAINS")
     except Exception as e:
         print(e)
 
