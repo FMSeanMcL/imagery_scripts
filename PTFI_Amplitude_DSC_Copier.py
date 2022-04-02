@@ -15,9 +15,17 @@ import os
 from subprocess import call
 import datetime
 
+
 # Set up workspace
 env.workspace = r"F:\imagery1\Orthoimagery_gdb\PTFI_Imagery.gdb\S_PTFI_Amplitude"
 mos_dataset = env.workspace
+
+try:
+    arcpy.management.Delete("mosaic_layer")
+except Exception as e:
+    print(f"Exception! {e}")
+
+
 sr = arcpy.SpatialReference(32753)    
 
 # Set up directories
@@ -62,7 +70,7 @@ for file in files_to_process:
     new_raster = dstfolder + "\\" + file 
     print(f"Adding {new_raster} to mosaic")
     try:    
-        arcpy.management.AddRastersToMosaicDataset(env.workspace, 
+        arcpy.management.AddRastersToMosaicDataset(mos_dataset, 
                                                    "Raster Dataset", 
                                                    new_raster, 
                                                    "UPDATE_CELL_SIZES", 
@@ -85,38 +93,46 @@ for file in files_to_process:
     except Exception as e:
                 print(e)
                                  
-# Process: Select Layer By Attribute
-if not files_to_process:
-    arcpy.management.SelectLayerByAttribute(mos_dataset, "NEW_SELECTION", """'Acquisition_Date' IS NULL""", None)
+#%%
+print("Calculating acquisition_date")
+mos_dataset=r"F:\imagery1\Orthoimagery_gdb\PTFI_Imagery.gdb\S_PTFI_Amplitude"
 
-    # Calculate aquisition date field
-    print("Calculating aquisition date")
-    try:    
-        arcpy.management.CalculateField(mos_dataset, "Acquisition_Date", '"{0}/{1}/{2}".format(!Name![4:6], !Name![6:8], !Name![0:4])', "PYTHON3", '', "TEXT", "NO_ENFORCE_DOMAINS")
-    except Exception as e:
-        print(e)
+arcpy.management.MakeMosaicLayer(mos_dataset, "mosaic_layer")
 
-# Synchronize mosaic dataset
-    print("Synchronizing mosaic dataset")    
-    arcpy.management.SynchronizeMosaicDataset(mos_dataset,
-                                              '', 
-                                              "UPDATE_WITH_NEW_ITEMS", 
-                                              "SYNC_ALL", 
-                                              "UPDATE_CELL_SIZES",
-                                              "UPDATE_BOUNDARY", 
-                                              "NO_OVERVIEWS", 
-                                              "NO_PYRAMIDS", 
-                                              "NO_STATISTICS",
-                                              "NO_THUMBNAILS", 
-                                              "NO_ITEM_CACHE", 
-                                              "REBUILD_RASTER", 
-                                              "UPDATE_FIELDS",
-                                              "Acquisition_Date;CenterX;CenterY;End_Date;GroupName;Platform;ProductName;Provider;Raster;Shape;Site_Name;Tag;ZOrder",
-                                              "UPDATE_EXISTING_ITEMS", 
-                                              "IGNORE_BROKEN_ITEMS", 
-                                              "OVERWRITE_EXISTING_ITEMS", 
-                                              "NO_REFRESH_INFO", 
-                                              "NO_STATISTICS")
+
+#%%
+arcpy.management.SelectLayerByAttribute("mosaic_layer\Footprint", "NEW_SELECTION", "'Aquisition_Date' IS NULL", None)
+#%%
+arcpy.management.CalculateField("mosaic_layer", "Acquisition_Date", 'Mid($feature.Name,4,2)+"/"+Mid($feature.Name,6,2)+"/"+Left($feature.Name,4)', "ARCADE", '', "TEXT", "NO_ENFORCE_DOMAINS")
+#%%   
+
+
+print("Synchronizing mosaic dataset")    
+arcpy.management.SynchronizeMosaicDataset(mos_dataset,
+                                          '', 
+                                          "UPDATE_WITH_NEW_ITEMS", 
+                                          "SYNC_ALL", 
+                                          "UPDATE_CELL_SIZES",
+                                          "UPDATE_BOUNDARY", 
+                                          "NO_OVERVIEWS", 
+                                          "NO_PYRAMIDS", 
+                                          "NO_STATISTICS",
+                                          "NO_THUMBNAILS", 
+                                          "NO_ITEM_CACHE", 
+                                          "REBUILD_RASTER", 
+                                          "UPDATE_FIELDS",
+                                          "Acquisition_Date;CenterX;CenterY;End_Date;GroupName;Platform;ProductName;Provider;Raster;Shape;Site_Name;Tag;ZOrder",
+                                          "UPDATE_EXISTING_ITEMS", 
+                                          "IGNORE_BROKEN_ITEMS", 
+                                          "OVERWRITE_EXISTING_ITEMS", 
+                                          "NO_REFRESH_INFO", 
+                                          "NO_STATISTICS")
+
+
+try:
+    arcpy.management.Delete("mosaic_layer")
+except Exception as e:
+    print(f"Exception! {e}")
 
 print("That's all folks!")
         
